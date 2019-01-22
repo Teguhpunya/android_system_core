@@ -17,9 +17,6 @@
 
 #include <stdint.h>
 
-#ifndef _BOOT_IMAGE_H_
-#define _BOOT_IMAGE_H_
-
 #define BOOT_MAGIC "ANDROID!"
 #define BOOT_MAGIC_SIZE 8
 #define BOOT_NAME_SIZE 16
@@ -111,7 +108,7 @@ struct boot_img_hdr_v1 : public boot_img_hdr_v0 {
     uint32_t header_size;
 } __attribute__((packed));
 
-/* When the boot image header has a version of BOOT_HEADER_VERSION_ONE, the structure of the boot
+/* When the boot image header has a version of 2, the structure of the boot
  * image is as follows:
  *
  * +---------------------+
@@ -125,17 +122,21 @@ struct boot_img_hdr_v1 : public boot_img_hdr_v0 {
  * +---------------------+
  * | recovery dtbo/acpio | p pages
  * +---------------------+
+ * | dtb                 | q pages
+ * +---------------------+
+
  * n = (kernel_size + page_size - 1) / page_size
  * m = (ramdisk_size + page_size - 1) / page_size
  * o = (second_size + page_size - 1) / page_size
  * p = (recovery_dtbo_size + page_size - 1) / page_size
+ * q = (dtb_size + page_size - 1) / page_size
  *
  * 0. all entities are page_size aligned in flash
- * 1. kernel and ramdisk are required (size != 0)
+ * 1. kernel, ramdisk and DTB are required (size != 0)
  * 2. recovery_dtbo/recovery_acpio is required for recovery.img in non-A/B
  *    devices(recovery_dtbo_size != 0)
  * 3. second is optional (second_size == 0 -> no second)
- * 4. load each element (kernel, ramdisk, second) at
+ * 4. load each element (kernel, ramdisk, second, dtb) at
  *    the specified physical address (kernel_addr, etc)
  * 5. If booting to recovery mode in a non-A/B device, extract recovery
  *    dtbo/acpio and apply the correct set of overlays on the base device tree
@@ -146,23 +147,7 @@ struct boot_img_hdr_v1 : public boot_img_hdr_v0 {
  * 8. if second_size != 0: jump to second_addr
  *    else: jump to kernel_addr
  */
-
-#if 0
-typedef struct ptentry ptentry;
-
-struct ptentry {
-    char name[16];      /* asciiz partition name    */
-    unsigned start;     /* starting block number    */
-    unsigned length;    /* length in blocks         */
-    unsigned flags;     /* set to zero              */
-};
-
-/* MSM Partition Table ATAG
-**
-** length: 2 + 7 * n
-** atag:   0x4d534d70
-**         <ptentry> x n
-*/
-#endif
-
-#endif
+struct boot_img_hdr_v2 : public boot_img_hdr_v1 {
+    uint32_t dtb_size; /* size in bytes for DTB image */
+    uint64_t dtb_addr; /* physical load address for DTB image */
+} __attribute__((packed));
